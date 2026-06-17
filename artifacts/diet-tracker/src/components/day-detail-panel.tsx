@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { X, Save, AlertTriangle, Wand2, Loader2 } from "lucide-react";
+import { X, Save, AlertTriangle, Wand2, Loader2, RotateCcw } from "lucide-react";
 import { DietLogInput } from "@workspace/api-client-react/src/generated/api.schemas";
 
 interface DayDetailPanelProps {
@@ -112,6 +112,22 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
     setFormData((prev) => ({ ...prev, [`${meal}Type`]: (value || null) as MealType }));
   };
 
+  const handleResetMeal = (meal: MealKey) => {
+    const updated = { ...mealCalories, [meal]: 0 };
+    setMealCalories(updated);
+    setFormData((prev) => ({
+      ...prev,
+      [`${meal}Food`]: null,
+      [`${meal}Type`]: null,
+      calories: Object.values(updated).reduce((a, b) => a + b, 0) || null,
+    }));
+  };
+
+  const handleResetCalories = () => {
+    setMealCalories({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
+    setFormData((prev) => ({ ...prev, calories: null }));
+  };
+
   const handleEstimate = (meal: MealKey) => {
     const foodKey = `${meal}Food` as keyof DietLogInput;
     const foodDescription = formData[foodKey] as string;
@@ -199,10 +215,21 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Daily Calorie Goal
           </span>
-          <span className={`text-sm font-bold font-serif ${textColor}`}>
-            {currentCalories.toLocaleString()}{" "}
-            <span className="text-xs font-sans font-normal text-muted-foreground">/ {dailyGoal.toLocaleString()} kcal</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-bold font-serif ${textColor}`}>
+              {currentCalories.toLocaleString()}{" "}
+              <span className="text-xs font-sans font-normal text-muted-foreground">/ {dailyGoal.toLocaleString()} kcal</span>
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+              onClick={handleResetCalories}
+              title="Reset all meal calories and re-enter"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
         <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
           <div
@@ -283,7 +310,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
                 </ToggleGroup>
               </div>
 
-              {/* Food input + estimate button */}
+              {/* Food input + estimate + reset buttons */}
               <div className="flex gap-2">
                 <Textarea
                   value={foodVal}
@@ -291,19 +318,31 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
                   placeholder={`What did you eat for ${meal}? e.g. 2 eggs and roti`}
                   className="resize-none min-h-[56px] max-h-[80px] bg-card border-border text-sm"
                 />
-                <Button
-                  variant="outline"
-                  className="h-auto px-3 flex flex-col gap-1 text-xs border-border bg-card shrink-0 min-w-[56px]"
-                  onClick={() => handleEstimate(meal)}
-                  disabled={isEstimating || !foodVal.trim()}
-                >
-                  {isEstimating ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-accent" />
-                  ) : (
-                    <Wand2 className="w-4 h-4 text-accent" />
-                  )}
-                  <span className="text-[10px]">{isEstimating ? "..." : "Estimate"}</span>
-                </Button>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <Button
+                    variant="outline"
+                    className="h-auto px-3 flex flex-col gap-1 text-xs border-border bg-card min-w-[56px] flex-1"
+                    onClick={() => handleEstimate(meal)}
+                    disabled={isEstimating || !foodVal.trim()}
+                    title="Estimate calories from food description"
+                  >
+                    {isEstimating ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                    ) : (
+                      <Wand2 className="w-4 h-4 text-accent" />
+                    )}
+                    <span className="text-[10px]">{isEstimating ? "..." : "Estimate"}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-full border border-border bg-card text-muted-foreground hover:text-destructive hover:border-destructive/40"
+                    onClick={() => handleResetMeal(meal)}
+                    title="Clear this meal and re-enter"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
           );
