@@ -12,13 +12,16 @@ tags:
     description: Health operations
   - name: diet-logs
     description: Daily diet log operations
+  - name: profile
+    description: User profile operations
+  - name: calories
+    description: Calorie estimation
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -26,6 +29,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: No profile yet
+    post:
+      operationId: upsertProfile
+      tags: [profile]
+      summary: Create or update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileInput"
+      responses:
+        "200":
+          description: Profile saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /calories/estimate:
+    post:
+      operationId: estimateCalories
+      tags: [calories]
+      summary: Estimate calories from a food description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalorieEstimateInput"
+      responses:
+        "200":
+          description: Estimated calories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalorieEstimateResult"
 
   /diet-logs:
     get:
@@ -105,52 +159,103 @@ paths:
           required: true
           schema:
             type: string
-            description: YYYY-MM-DD format
       responses:
         "200":
-          description: Diet log for the day
+          description: Diet log
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/DietLog"
         "404":
-          description: No log for this date
+          description: Not found
 
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
     MealType:
       type: ["string", "null"]
       enum: [healthy, moderate, junk, null]
 
+    UserProfile:
+      type: object
+      required: [id, weightKg, heightCm, age, gender, activityLevel, dailyCalorieGoal, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        weightKg:
+          type: number
+        heightCm:
+          type: number
+        age:
+          type: integer
+        gender:
+          type: string
+          enum: [male, female]
+        activityLevel:
+          type: string
+          enum: [sedentary, light, moderate, active]
+        dailyCalorieGoal:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    UserProfileInput:
+      type: object
+      required: [weightKg, heightCm, age, gender, activityLevel]
+      properties:
+        weightKg:
+          type: number
+        heightCm:
+          type: number
+        age:
+          type: integer
+        gender:
+          type: string
+          enum: [male, female]
+        activityLevel:
+          type: string
+          enum: [sedentary, light, moderate, active]
+
+    CalorieEstimateInput:
+      type: object
+      required: [foodDescription]
+      properties:
+        foodDescription:
+          type: string
+
+    CalorieEstimateResult:
+      type: object
+      required: [estimatedCalories, items]
+      properties:
+        estimatedCalories:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            required: [food, calories]
+            properties:
+              food:
+                type: string
+              calories:
+                type: integer
+
     DietLog:
       type: object
-      required:
-        - id
-        - date
-        - breakfastType
-        - lunchType
-        - dinnerType
-        - snacksType
-        - waterCups
-        - calories
-        - note
-        - dayStatus
-        - createdAt
-        - updatedAt
+      required: [id, date, breakfastType, lunchType, dinnerType, snacksType, breakfastFood, lunchFood, dinnerFood, snacksFood, waterCups, calories, note, dayStatus, createdAt, updatedAt]
       properties:
         id:
           type: integer
         date:
           type: string
-          description: YYYY-MM-DD
         breakfastType:
           $ref: "#/components/schemas/MealType"
         lunchType:
@@ -159,6 +264,14 @@ components:
           $ref: "#/components/schemas/MealType"
         snacksType:
           $ref: "#/components/schemas/MealType"
+        breakfastFood:
+          type: ["string", "null"]
+        lunchFood:
+          type: ["string", "null"]
+        dinnerFood:
+          type: ["string", "null"]
+        snacksFood:
+          type: ["string", "null"]
         waterCups:
           type: integer
         calories:
@@ -175,12 +288,10 @@ components:
 
     DietLogInput:
       type: object
-      required:
-        - date
+      required: [date]
       properties:
         date:
           type: string
-          description: YYYY-MM-DD
         breakfastType:
           $ref: "#/components/schemas/MealType"
         lunchType:
@@ -189,9 +300,16 @@ components:
           $ref: "#/components/schemas/MealType"
         snacksType:
           $ref: "#/components/schemas/MealType"
+        breakfastFood:
+          type: ["string", "null"]
+        lunchFood:
+          type: ["string", "null"]
+        dinnerFood:
+          type: ["string", "null"]
+        snacksFood:
+          type: ["string", "null"]
         waterCups:
           type: integer
-          default: 0
         calories:
           type: ["integer", "null"]
         note:
@@ -199,16 +317,7 @@ components:
 
     MonthSummary:
       type: object
-      required:
-        - year
-        - month
-        - totalLogged
-        - cleanDays
-        - cheatDays
-        - moderateDays
-        - currentStreak
-        - avgWaterCups
-        - avgCalories
+      required: [year, month, totalLogged, cleanDays, cheatDays, moderateDays, currentStreak, avgWaterCups, avgCalories]
       properties:
         year:
           type: integer

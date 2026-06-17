@@ -9,11 +9,66 @@ import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   "status": zod.string()
+})
+
+
+/**
+ * @summary Get user profile
+ */
+export const GetProfileResponse = zod.object({
+  "id": zod.number(),
+  "weightKg": zod.number(),
+  "heightCm": zod.number(),
+  "age": zod.number(),
+  "gender": zod.enum(['male', 'female']),
+  "activityLevel": zod.enum(['sedentary', 'light', 'moderate', 'active']),
+  "dailyCalorieGoal": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Create or update user profile
+ */
+export const UpsertProfileBody = zod.object({
+  "weightKg": zod.number(),
+  "heightCm": zod.number(),
+  "age": zod.number(),
+  "gender": zod.enum(['male', 'female']),
+  "activityLevel": zod.enum(['sedentary', 'light', 'moderate', 'active'])
+})
+
+export const UpsertProfileResponse = zod.object({
+  "id": zod.number(),
+  "weightKg": zod.number(),
+  "heightCm": zod.number(),
+  "age": zod.number(),
+  "gender": zod.enum(['male', 'female']),
+  "activityLevel": zod.enum(['sedentary', 'light', 'moderate', 'active']),
+  "dailyCalorieGoal": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Estimate calories from a food description
+ */
+export const EstimateCaloriesBody = zod.object({
+  "foodDescription": zod.string()
+})
+
+export const EstimateCaloriesResponse = zod.object({
+  "estimatedCalories": zod.number(),
+  "items": zod.array(zod.object({
+  "food": zod.string(),
+  "calories": zod.number()
+}))
 })
 
 
@@ -27,11 +82,15 @@ export const ListDietLogsQueryParams = zod.object({
 
 export const ListDietLogsResponseItem = zod.object({
   "id": zod.number(),
-  "date": zod.string().describe('YYYY-MM-DD'),
+  "date": zod.string(),
   "breakfastType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "lunchType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "dinnerType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "snacksType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
+  "breakfastFood": zod.string().nullable(),
+  "lunchFood": zod.string().nullable(),
+  "dinnerFood": zod.string().nullable(),
+  "snacksFood": zod.string().nullable(),
   "waterCups": zod.number(),
   "calories": zod.number().nullable(),
   "note": zod.string().nullable(),
@@ -45,26 +104,32 @@ export const ListDietLogsResponse = zod.array(ListDietLogsResponseItem)
 /**
  * @summary Create or update a diet log for a day
  */
-export const upsertDietLogBodyWaterCupsDefault = 0;
-
 export const UpsertDietLogBody = zod.object({
-  "date": zod.string().describe('YYYY-MM-DD'),
+  "date": zod.string(),
   "breakfastType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullish(),
   "lunchType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullish(),
   "dinnerType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullish(),
   "snacksType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullish(),
-  "waterCups": zod.number().default(upsertDietLogBodyWaterCupsDefault),
+  "breakfastFood": zod.string().nullish(),
+  "lunchFood": zod.string().nullish(),
+  "dinnerFood": zod.string().nullish(),
+  "snacksFood": zod.string().nullish(),
+  "waterCups": zod.number().optional(),
   "calories": zod.number().nullish(),
   "note": zod.string().nullish()
 })
 
 export const UpsertDietLogResponse = zod.object({
   "id": zod.number(),
-  "date": zod.string().describe('YYYY-MM-DD'),
+  "date": zod.string(),
   "breakfastType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "lunchType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "dinnerType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "snacksType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
+  "breakfastFood": zod.string().nullable(),
+  "lunchFood": zod.string().nullable(),
+  "dinnerFood": zod.string().nullable(),
+  "snacksFood": zod.string().nullable(),
   "waterCups": zod.number(),
   "calories": zod.number().nullable(),
   "note": zod.string().nullable(),
@@ -104,11 +169,15 @@ export const GetDietLogParams = zod.object({
 
 export const GetDietLogResponse = zod.object({
   "id": zod.number(),
-  "date": zod.string().describe('YYYY-MM-DD'),
+  "date": zod.string(),
   "breakfastType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "lunchType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "dinnerType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
   "snacksType": zod.union([zod.literal('healthy'),zod.literal('moderate'),zod.literal('junk'),zod.literal(null)]).nullable(),
+  "breakfastFood": zod.string().nullable(),
+  "lunchFood": zod.string().nullable(),
+  "dinnerFood": zod.string().nullable(),
+  "snacksFood": zod.string().nullable(),
   "waterCups": zod.number(),
   "calories": zod.number().nullable(),
   "note": zod.string().nullable(),

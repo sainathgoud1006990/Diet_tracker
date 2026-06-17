@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { db, dietLogsTable } from "@workspace/db";
 import {
   ListDietLogsQueryParams,
@@ -7,7 +7,6 @@ import {
   GetDietLogParams,
   GetMonthSummaryQueryParams,
 } from "@workspace/api-zod";
-import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -30,7 +29,6 @@ router.get("/diet-logs", async (req, res) => {
     res.status(400).json({ error: "Invalid query params" });
     return;
   }
-
   const { year, month } = parsed.data;
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -67,6 +65,10 @@ router.post("/diet-logs", async (req, res) => {
       lunchType: data.lunchType ?? null,
       dinnerType: data.dinnerType ?? null,
       snacksType: data.snacksType ?? null,
+      breakfastFood: data.breakfastFood ?? null,
+      lunchFood: data.lunchFood ?? null,
+      dinnerFood: data.dinnerFood ?? null,
+      snacksFood: data.snacksFood ?? null,
       waterCups: data.waterCups ?? 0,
       calories: data.calories ?? null,
       note: data.note ?? null,
@@ -79,6 +81,10 @@ router.post("/diet-logs", async (req, res) => {
         lunchType: data.lunchType ?? null,
         dinnerType: data.dinnerType ?? null,
         snacksType: data.snacksType ?? null,
+        breakfastFood: data.breakfastFood ?? null,
+        lunchFood: data.lunchFood ?? null,
+        dinnerFood: data.dinnerFood ?? null,
+        snacksFood: data.snacksFood ?? null,
         waterCups: data.waterCups ?? 0,
         calories: data.calories ?? null,
         note: data.note ?? null,
@@ -98,7 +104,6 @@ router.get("/diet-logs/summary", async (req, res) => {
     res.status(400).json({ error: "Invalid query params" });
     return;
   }
-
   const { year, month } = parsed.data;
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -123,9 +128,9 @@ router.get("/diet-logs/summary", async (req, res) => {
     else break;
   }
 
-  const withWater = logs.filter((l) => l.dayStatus !== "empty");
-  const avgWaterCups = withWater.length
-    ? withWater.reduce((sum, l) => sum + l.waterCups, 0) / withWater.length
+  const withLogs = logs.filter((l) => l.dayStatus !== "empty");
+  const avgWaterCups = withLogs.length
+    ? withLogs.reduce((sum, l) => sum + l.waterCups, 0) / withLogs.length
     : 0;
 
   const withCalories = logs.filter((l) => l.calories !== null);
@@ -152,7 +157,6 @@ router.get("/diet-logs/:date", async (req, res) => {
     res.status(400).json({ error: "Invalid date" });
     return;
   }
-
   const [log] = await db
     .select()
     .from(dietLogsTable)
@@ -162,7 +166,6 @@ router.get("/diet-logs/:date", async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
-
   res.json(log);
 });
 

@@ -21,6 +21,76 @@ export const MealType = {
   junk: 'junk',
 } as const;
 
+export type UserProfileGender = typeof UserProfileGender[keyof typeof UserProfileGender];
+
+
+export const UserProfileGender = {
+  male: 'male',
+  female: 'female',
+} as const;
+
+export type UserProfileActivityLevel = typeof UserProfileActivityLevel[keyof typeof UserProfileActivityLevel];
+
+
+export const UserProfileActivityLevel = {
+  sedentary: 'sedentary',
+  light: 'light',
+  moderate: 'moderate',
+  active: 'active',
+} as const;
+
+export interface UserProfile {
+  id: number;
+  weightKg: number;
+  heightCm: number;
+  age: number;
+  gender: UserProfileGender;
+  activityLevel: UserProfileActivityLevel;
+  dailyCalorieGoal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type UserProfileInputGender = typeof UserProfileInputGender[keyof typeof UserProfileInputGender];
+
+
+export const UserProfileInputGender = {
+  male: 'male',
+  female: 'female',
+} as const;
+
+export type UserProfileInputActivityLevel = typeof UserProfileInputActivityLevel[keyof typeof UserProfileInputActivityLevel];
+
+
+export const UserProfileInputActivityLevel = {
+  sedentary: 'sedentary',
+  light: 'light',
+  moderate: 'moderate',
+  active: 'active',
+} as const;
+
+export interface UserProfileInput {
+  weightKg: number;
+  heightCm: number;
+  age: number;
+  gender: UserProfileInputGender;
+  activityLevel: UserProfileInputActivityLevel;
+}
+
+export interface CalorieEstimateInput {
+  foodDescription: string;
+}
+
+export type CalorieEstimateResultItemsItem = {
+  food: string;
+  calories: number;
+};
+
+export interface CalorieEstimateResult {
+  estimatedCalories: number;
+  items: CalorieEstimateResultItemsItem[];
+}
+
 export type DietLogDayStatus = typeof DietLogDayStatus[keyof typeof DietLogDayStatus];
 
 
@@ -33,12 +103,19 @@ export const DietLogDayStatus = {
 
 export interface DietLog {
   id: number;
-  /** YYYY-MM-DD */
   date: string;
   breakfastType: MealType | null;
   lunchType: MealType | null;
   dinnerType: MealType | null;
   snacksType: MealType | null;
+  /** @nullable */
+  breakfastFood: string | null;
+  /** @nullable */
+  lunchFood: string | null;
+  /** @nullable */
+  dinnerFood: string | null;
+  /** @nullable */
+  snacksFood: string | null;
   waterCups: number;
   /** @nullable */
   calories: number | null;
@@ -50,12 +127,19 @@ export interface DietLog {
 }
 
 export interface DietLogInput {
-  /** YYYY-MM-DD */
   date: string;
   breakfastType?: MealType | null;
   lunchType?: MealType | null;
   dinnerType?: MealType | null;
   snacksType?: MealType | null;
+  /** @nullable */
+  breakfastFood?: string | null;
+  /** @nullable */
+  lunchFood?: string | null;
+  /** @nullable */
+  dinnerFood?: string | null;
+  /** @nullable */
+  snacksFood?: string | null;
   waterCups?: number;
   /** @nullable */
   calories?: number | null;

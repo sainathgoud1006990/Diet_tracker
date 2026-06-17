@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './calorieEstimateInput';
+export * from './calorieEstimateResult';
+export * from './calorieEstimateResultItemsItem';
 export * from './dietLog';
 export * from './dietLogDayStatus';
 export * from './dietLogInput';
@@ -14,3 +17,9 @@ export * from './healthStatus';
 export * from './listDietLogsParams';
 export * from './mealType';
 export * from './monthSummary';
+export * from './userProfile';
+export * from './userProfileActivityLevel';
+export * from './userProfileGender';
+export * from './userProfileInput';
+export * from './userProfileInputActivityLevel';
+export * from './userProfileInputGender';

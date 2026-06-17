@@ -8,12 +8,19 @@
 import type { MealType } from './mealType';
 
 export interface DietLogInput {
-  /** YYYY-MM-DD */
   date: string;
   breakfastType?: MealType | null;
   lunchType?: MealType | null;
   dinnerType?: MealType | null;
   snacksType?: MealType | null;
+  /** @nullable */
+  breakfastFood?: string | null;
+  /** @nullable */
+  lunchFood?: string | null;
+  /** @nullable */
+  dinnerFood?: string | null;
+  /** @nullable */
+  snacksFood?: string | null;
   waterCups?: number;
   /** @nullable */
   calories?: number | null;
