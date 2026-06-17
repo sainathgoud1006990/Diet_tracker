@@ -81,13 +81,33 @@ export interface CalorieEstimateInput {
   foodDescription: string;
 }
 
+export type CalorieEstimateResultMealType = typeof CalorieEstimateResultMealType[keyof typeof CalorieEstimateResultMealType];
+
+
+export const CalorieEstimateResultMealType = {
+  healthy: 'healthy',
+  moderate: 'moderate',
+  junk: 'junk',
+} as const;
+
+export type CalorieEstimateResultItemsItemCategory = typeof CalorieEstimateResultItemsItemCategory[keyof typeof CalorieEstimateResultItemsItemCategory];
+
+
+export const CalorieEstimateResultItemsItemCategory = {
+  healthy: 'healthy',
+  moderate: 'moderate',
+  junk: 'junk',
+} as const;
+
 export type CalorieEstimateResultItemsItem = {
   food: string;
   calories: number;
+  category: CalorieEstimateResultItemsItemCategory;
 };
 
 export interface CalorieEstimateResult {
   estimatedCalories: number;
+  mealType: CalorieEstimateResultMealType;
   items: CalorieEstimateResultItemsItem[];
 }
 

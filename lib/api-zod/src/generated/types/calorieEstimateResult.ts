@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CalorieEstimateResultItemsItem } from './calorieEstimateResultItemsItem';
+import type { CalorieEstimateResultMealType } from './calorieEstimateResultMealType';
 
 export interface CalorieEstimateResult {
   estimatedCalories: number;
+  mealType: CalorieEstimateResultMealType;
   items: CalorieEstimateResultItemsItem[];
 }

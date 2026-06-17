@@ -233,20 +233,26 @@ components:
 
     CalorieEstimateResult:
       type: object
-      required: [estimatedCalories, items]
+      required: [estimatedCalories, mealType, items]
       properties:
         estimatedCalories:
           type: integer
+        mealType:
+          type: string
+          enum: [healthy, moderate, junk]
         items:
           type: array
           items:
             type: object
-            required: [food, calories]
+            required: [food, calories, category]
             properties:
               food:
                 type: string
               calories:
                 type: integer
+              category:
+                type: string
+                enum: [healthy, moderate, junk]
 
     DietLog:
       type: object

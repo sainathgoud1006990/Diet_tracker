@@ -65,9 +65,11 @@ export const EstimateCaloriesBody = zod.object({
 
 export const EstimateCaloriesResponse = zod.object({
   "estimatedCalories": zod.number(),
+  "mealType": zod.enum(['healthy', 'moderate', 'junk']),
   "items": zod.array(zod.object({
   "food": zod.string(),
-  "calories": zod.number()
+  "calories": zod.number(),
+  "category": zod.enum(['healthy', 'moderate', 'junk'])
 }))
 })
 

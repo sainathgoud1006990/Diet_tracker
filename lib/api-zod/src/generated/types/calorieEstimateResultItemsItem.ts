@@ -5,8 +5,10 @@
  * Diet tracking API
  * OpenAPI spec version: 0.1.0
  */
+import type { CalorieEstimateResultItemsItemCategory } from './calorieEstimateResultItemsItemCategory';
 
 export type CalorieEstimateResultItemsItem = {
   food: string;
   calories: number;
+  category: CalorieEstimateResultItemsItemCategory;
 };
