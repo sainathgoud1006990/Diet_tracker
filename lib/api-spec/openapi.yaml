@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Diet tracking API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: diet-logs
+    description: Daily diet log operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /diet-logs:
+    get:
+      operationId: listDietLogs
+      tags: [diet-logs]
+      summary: List all diet logs for a month
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of diet logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DietLog"
+    post:
+      operationId: upsertDietLog
+      tags: [diet-logs]
+      summary: Create or update a diet log for a day
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DietLogInput"
+      responses:
+        "200":
+          description: Diet log saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DietLog"
+
+  /diet-logs/summary:
+    get:
+      operationId: getMonthSummary
+      tags: [diet-logs]
+      summary: Get monthly summary stats
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monthly summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthSummary"
+
+  /diet-logs/{date}:
+    get:
+      operationId: getDietLog
+      tags: [diet-logs]
+      summary: Get diet log for a specific date
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            description: YYYY-MM-DD format
+      responses:
+        "200":
+          description: Diet log for the day
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DietLog"
+        "404":
+          description: No log for this date
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +126,105 @@ components:
       required:
         - status
 
+    MealType:
+      type: ["string", "null"]
+      enum: [healthy, moderate, junk, null]
+
+    DietLog:
+      type: object
+      required:
+        - id
+        - date
+        - breakfastType
+        - lunchType
+        - dinnerType
+        - snacksType
+        - waterCups
+        - calories
+        - note
+        - dayStatus
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          description: YYYY-MM-DD
+        breakfastType:
+          $ref: "#/components/schemas/MealType"
+        lunchType:
+          $ref: "#/components/schemas/MealType"
+        dinnerType:
+          $ref: "#/components/schemas/MealType"
+        snacksType:
+          $ref: "#/components/schemas/MealType"
+        waterCups:
+          type: integer
+        calories:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
+        dayStatus:
+          type: string
+          enum: [clean, cheat, moderate, empty]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    DietLogInput:
+      type: object
+      required:
+        - date
+      properties:
+        date:
+          type: string
+          description: YYYY-MM-DD
+        breakfastType:
+          $ref: "#/components/schemas/MealType"
+        lunchType:
+          $ref: "#/components/schemas/MealType"
+        dinnerType:
+          $ref: "#/components/schemas/MealType"
+        snacksType:
+          $ref: "#/components/schemas/MealType"
+        waterCups:
+          type: integer
+          default: 0
+        calories:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
+
+    MonthSummary:
+      type: object
+      required:
+        - year
+        - month
+        - totalLogged
+        - cleanDays
+        - cheatDays
+        - moderateDays
+        - currentStreak
+        - avgWaterCups
+        - avgCalories
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+        totalLogged:
+          type: integer
+        cleanDays:
+          type: integer
+        cheatDays:
+          type: integer
+        moderateDays:
+          type: integer
+        currentStreak:
+          type: integer
+        avgWaterCups:
+          type: number
+        avgCalories:
+          type: ["number", "null"]
