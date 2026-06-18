@@ -1,4 +1,4 @@
-import { pgTable, serial, real, integer, text, varchar, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, serial, real, integer, text, varchar, timestamp, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -18,7 +18,7 @@ export const userProfilesTable = pgTable("user_profiles", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
-  uniqueIndex("user_profiles_user_id_idx").on(table.userId),
+  unique("user_profiles_user_id_unique").on(table.userId),
 ]);
 
 export const insertUserProfileSchema = createInsertSchema(userProfilesTable).omit({
