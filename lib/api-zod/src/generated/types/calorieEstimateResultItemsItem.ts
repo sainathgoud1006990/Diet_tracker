@@ -10,5 +10,6 @@ import type { CalorieEstimateResultItemsItemCategory } from './calorieEstimateRe
 export type CalorieEstimateResultItemsItem = {
   food: string;
   calories: number;
+  proteinG: number;
   category: CalorieEstimateResultItemsItemCategory;
 };

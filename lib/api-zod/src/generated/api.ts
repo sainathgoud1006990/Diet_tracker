@@ -27,6 +27,7 @@ export const GetProfileResponse = zod.object({
   "gender": zod.enum(['male', 'female']),
   "activityLevel": zod.enum(['sedentary', 'light', 'moderate', 'active']),
   "dailyCalorieGoal": zod.number(),
+  "dailyProteinGoal": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -51,6 +52,7 @@ export const UpsertProfileResponse = zod.object({
   "gender": zod.enum(['male', 'female']),
   "activityLevel": zod.enum(['sedentary', 'light', 'moderate', 'active']),
   "dailyCalorieGoal": zod.number(),
+  "dailyProteinGoal": zod.number(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -65,10 +67,12 @@ export const EstimateCaloriesBody = zod.object({
 
 export const EstimateCaloriesResponse = zod.object({
   "estimatedCalories": zod.number(),
+  "estimatedProteinG": zod.number(),
   "mealType": zod.enum(['healthy', 'moderate', 'junk']),
   "items": zod.array(zod.object({
   "food": zod.string(),
   "calories": zod.number(),
+  "proteinG": zod.number(),
   "category": zod.enum(['healthy', 'moderate', 'junk'])
 }))
 })
@@ -95,6 +99,7 @@ export const ListDietLogsResponseItem = zod.object({
   "snacksFood": zod.string().nullable(),
   "waterCups": zod.number(),
   "calories": zod.number().nullable(),
+  "protein": zod.number().nullable(),
   "note": zod.string().nullable(),
   "dayStatus": zod.enum(['clean', 'cheat', 'moderate', 'empty']),
   "createdAt": zod.string(),
@@ -118,6 +123,7 @@ export const UpsertDietLogBody = zod.object({
   "snacksFood": zod.string().nullish(),
   "waterCups": zod.number().optional(),
   "calories": zod.number().nullish(),
+  "protein": zod.number().nullish(),
   "note": zod.string().nullish()
 })
 
@@ -134,6 +140,7 @@ export const UpsertDietLogResponse = zod.object({
   "snacksFood": zod.string().nullable(),
   "waterCups": zod.number(),
   "calories": zod.number().nullable(),
+  "protein": zod.number().nullable(),
   "note": zod.string().nullable(),
   "dayStatus": zod.enum(['clean', 'cheat', 'moderate', 'empty']),
   "createdAt": zod.string(),
@@ -182,10 +189,90 @@ export const GetDietLogResponse = zod.object({
   "snacksFood": zod.string().nullable(),
   "waterCups": zod.number(),
   "calories": zod.number().nullable(),
+  "protein": zod.number().nullable(),
   "note": zod.string().nullable(),
   "dayStatus": zod.enum(['clean', 'cheat', 'moderate', 'empty']),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Get the currently authenticated user
+ */
+export const GetCurrentAuthUserHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — Bearer <sid>.')
+})
+
+export const GetCurrentAuthUserResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "profileImageUrl": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Start the browser OIDC login flow
+ */
+export const BeginBrowserLoginQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional()
+})
+
+
+/**
+ * @summary Complete the browser OIDC login flow
+ */
+export const HandleBrowserLoginCallbackQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string().optional(),
+  "iss": zod.coerce.string().url().optional()
+})
+
+
+/**
+ * @summary Clear the session and begin OIDC logout
+ */
+export const LogoutBrowserSessionHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — Bearer <sid>.')
+})
+
+
+/**
+ * @summary Exchange a mobile OIDC code for a session token
+ */
+
+
+
+
+
+
+
+export const ExchangeMobileAuthorizationCodeBody = zod.object({
+  "code": zod.string().min(1),
+  "code_verifier": zod.string().min(1),
+  "redirect_uri": zod.string().url().min(1),
+  "state": zod.string().min(1),
+  "nonce": zod.string().min(1).optional()
+})
+
+export const ExchangeMobileAuthorizationCodeResponse = zod.object({
+  "token": zod.string()
+})
+
+
+/**
+ * @summary Delete a mobile session token
+ */
+export const LogoutMobileSessionHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — Bearer <sid>.')
+})
+
+export const LogoutMobileSessionResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, userProfilesTable } from "@workspace/db";
 import { UpsertProfileBody } from "@workspace/api-zod";
-import { logger } from "../lib/logger";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -19,18 +19,28 @@ function computeDailyCalorieGoal(
   gender: "male" | "female",
   activityLevel: string
 ): number {
-  // Mifflin-St Jeor BMR formula
   const bmr =
     gender === "male"
       ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
       : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
-
   const multiplier = ACTIVITY_MULTIPLIERS[activityLevel] ?? 1.375;
   return Math.round(bmr * multiplier);
 }
 
+function computeDailyProteinGoal(weightKg: number): number {
+  return Math.round(weightKg * 1.6);
+}
+
 router.get("/profile", async (req, res) => {
-  const [profile] = await db.select().from(userProfilesTable).limit(1);
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const [profile] = await db
+    .select()
+    .from(userProfilesTable)
+    .where(eq(userProfilesTable.userId, req.user.id))
+    .limit(1);
   if (!profile) {
     res.status(404).json({ error: "No profile found" });
     return;
@@ -39,6 +49,11 @@ router.get("/profile", async (req, res) => {
 });
 
 router.post("/profile", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const parsed = UpsertProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid body" });
@@ -53,25 +68,36 @@ router.post("/profile", async (req, res) => {
     gender as "male" | "female",
     activityLevel
   );
+  const dailyProteinGoal = computeDailyProteinGoal(weightKg);
 
-  const [existing] = await db.select().from(userProfilesTable).limit(1);
+  const [profile] = await db
+    .insert(userProfilesTable)
+    .values({
+      userId: req.user.id,
+      weightKg,
+      heightCm,
+      age,
+      gender,
+      activityLevel,
+      dailyCalorieGoal,
+      dailyProteinGoal,
+    })
+    .onConflictDoUpdate({
+      target: userProfilesTable.userId,
+      set: {
+        weightKg,
+        heightCm,
+        age,
+        gender,
+        activityLevel,
+        dailyCalorieGoal,
+        dailyProteinGoal,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
 
-  let profile;
-  if (existing) {
-    const [updated] = await db
-      .update(userProfilesTable)
-      .set({ weightKg, heightCm, age, gender, activityLevel, dailyCalorieGoal, updatedAt: new Date() })
-      .returning();
-    profile = updated;
-  } else {
-    const [created] = await db
-      .insert(userProfilesTable)
-      .values({ weightKg, heightCm, age, gender, activityLevel, dailyCalorieGoal })
-      .returning();
-    profile = created;
-  }
-
-  req.log.info({ dailyCalorieGoal }, "Profile upserted");
+  req.log.info({ dailyCalorieGoal, dailyProteinGoal }, "Profile upserted");
   res.json(profile);
 });
 

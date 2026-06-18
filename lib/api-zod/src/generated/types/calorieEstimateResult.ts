@@ -10,6 +10,7 @@ import type { CalorieEstimateResultMealType } from './calorieEstimateResultMealT
 
 export interface CalorieEstimateResult {
   estimatedCalories: number;
+  estimatedProteinG: number;
   mealType: CalorieEstimateResultMealType;
   items: CalorieEstimateResultItemsItem[];
 }

@@ -15,8 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { X, Save, AlertTriangle, Wand2, Loader2, RotateCcw } from "lucide-react";
-import { DietLogInput } from "@workspace/api-client-react/src/generated/api.schemas";
+import { X, Save, AlertTriangle, Wand2, Loader2, RotateCcw, Dumbbell } from "lucide-react";
+import type { DietLogInput } from "@workspace/api-client-react";
 
 interface DayDetailPanelProps {
   date: string;
@@ -28,6 +28,7 @@ interface DayDetailPanelProps {
 
 type MealKey = "breakfast" | "lunch" | "dinner" | "snacks";
 type MealCalories = Record<MealKey, number>;
+type MealProtein = Record<MealKey, number>;
 type MealType = "healthy" | "moderate" | "junk" | null;
 
 const MEALS: MealKey[] = ["breakfast", "lunch", "dinner", "snacks"];
@@ -57,6 +58,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
 
   const [formData, setFormData] = useState<DietLogInput>({ date });
   const [mealCalories, setMealCalories] = useState<MealCalories>({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
+  const [mealProtein, setMealProtein] = useState<MealProtein>({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
   const [estimatingMeal, setEstimatingMeal] = useState<MealKey | null>(null);
   const initializedForId = useRef<string | null>(null);
 
@@ -75,18 +77,21 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
         snacksFood: log.snacksFood,
         waterCups: log.waterCups,
         calories: log.calories,
+        protein: log.protein,
         note: log.note,
       });
       setMealCalories({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
+      setMealProtein({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
     } else if (!log && !isLoading && initializedForId.current !== date) {
       initializedForId.current = date;
       setFormData({
         date,
         breakfastType: null, lunchType: null, dinnerType: null, snacksType: null,
         breakfastFood: null, lunchFood: null, dinnerFood: null, snacksFood: null,
-        waterCups: 0, calories: null, note: "",
+        waterCups: 0, calories: null, protein: null, note: "",
       });
       setMealCalories({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
+      setMealProtein({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
     }
   }, [log, date, isLoading]);
 
@@ -105,27 +110,31 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
   };
 
   const handleFoodChange = (meal: MealKey, value: string) => {
-    setFormData((prev) => ({ ...prev, [`${meal}Food`]: value || null }));
+    setFormData((prev: DietLogInput) => ({ ...prev, [`${meal}Food`]: value || null }));
   };
 
   const handleMealTypeChange = (meal: MealKey, value: string) => {
-    setFormData((prev) => ({ ...prev, [`${meal}Type`]: (value || null) as MealType }));
+    setFormData((prev: DietLogInput) => ({ ...prev, [`${meal}Type`]: (value || null) as MealType }));
   };
 
   const handleResetMeal = (meal: MealKey) => {
-    const updated = { ...mealCalories, [meal]: 0 };
-    setMealCalories(updated);
-    setFormData((prev) => ({
+    const updatedCal = { ...mealCalories, [meal]: 0 };
+    const updatedPro = { ...mealProtein, [meal]: 0 };
+    setMealCalories(updatedCal);
+    setMealProtein(updatedPro);
+    setFormData((prev: DietLogInput) => ({
       ...prev,
       [`${meal}Food`]: null,
       [`${meal}Type`]: null,
-      calories: Object.values(updated).reduce((a, b) => a + b, 0) || null,
+      calories: Object.values(updatedCal).reduce((a, b) => a + b, 0) || null,
+      protein: Object.values(updatedPro).reduce((a, b) => a + b, 0) || null,
     }));
   };
 
   const handleResetCalories = () => {
     setMealCalories({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
-    setFormData((prev) => ({ ...prev, calories: null }));
+    setMealProtein({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
+    setFormData((prev: DietLogInput) => ({ ...prev, calories: null, protein: null }));
   };
 
   const handleEstimate = (meal: MealKey) => {
@@ -138,16 +147,16 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
       { data: { foodDescription } },
       {
         onSuccess: (result) => {
-          // Update this meal's calorie count (replaces, not adds)
-          const updated = { ...mealCalories, [meal]: result.estimatedCalories };
-          setMealCalories(updated);
-          // Auto-set meal type based on food classification
+          const updatedCal = { ...mealCalories, [meal]: result.estimatedCalories };
+          const updatedPro = { ...mealProtein, [meal]: result.estimatedProteinG };
+          setMealCalories(updatedCal);
+          setMealProtein(updatedPro);
           const typeKey = `${meal}Type` as keyof DietLogInput;
-          setFormData((prev) => ({
+          setFormData((prev: DietLogInput) => ({
             ...prev,
             [typeKey]: result.mealType,
-            // Sum all meal calories as the new total
-            calories: Object.values(updated).reduce((a, b) => a + b, 0),
+            calories: Object.values(updatedCal).reduce((a, b) => a + b, 0),
+            protein: Object.values(updatedPro).reduce((a, b) => a + b, 0),
           }));
           setEstimatingMeal(null);
         },
@@ -172,11 +181,16 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
   const formattedDate = dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const dailyGoal = profile.dailyCalorieGoal || 2000;
+  const dailyProteinGoal = profile.dailyProteinGoal || 120;
   const currentCalories = formData.calories || 0;
+  const currentProtein = formData.protein || 0;
   const progressPercent = Math.min((currentCalories / dailyGoal) * 100, 100);
+  const proteinPercent = Math.min((currentProtein / dailyProteinGoal) * 100, 100);
   const isOverGoal = currentCalories > dailyGoal;
   const isNearGoal = currentCalories >= dailyGoal * 0.85 && !isOverGoal;
   const remaining = dailyGoal - currentCalories;
+  const isProteinMet = currentProtein >= dailyProteinGoal;
+  const isProteinNear = currentProtein >= dailyProteinGoal * 0.8 && !isProteinMet;
 
   const progressColor = isOverGoal
     ? "bg-destructive"
@@ -188,6 +202,12 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
     : isNearGoal
     ? "text-[hsl(38_95%_55%)]"
     : "text-primary";
+  const proteinBarColor = isProteinMet
+    ? "bg-[hsl(262_80%_60%)]"
+    : isProteinNear
+    ? "bg-[hsl(262_70%_50%)]"
+    : "bg-[hsl(262_60%_45%)]";
+  const proteinTextColor = isProteinMet ? "text-[hsl(262_80%_70%)]" : "text-[hsl(262_60%_60%)]";
 
   return (
     <div className="flex flex-col h-full bg-card">
@@ -209,44 +229,70 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
         </Button>
       </div>
 
-      {/* Calorie goal bar — always visible at top */}
-      <div className="px-6 py-3 border-b border-border bg-background/20">
-        <div className="flex justify-between items-center mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Daily Calorie Goal
-          </span>
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold font-serif ${textColor}`}>
-              {currentCalories.toLocaleString()}{" "}
-              <span className="text-xs font-sans font-normal text-muted-foreground">/ {dailyGoal.toLocaleString()} kcal</span>
+      {/* Calorie + protein bars */}
+      <div className="px-6 py-3 border-b border-border bg-background/20 space-y-3">
+        {/* Calorie bar */}
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Daily Calories
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-destructive"
-              onClick={handleResetCalories}
-              title="Reset all meal calories and re-enter"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold font-serif ${textColor}`}>
+                {currentCalories.toLocaleString()}{" "}
+                <span className="text-xs font-sans font-normal text-muted-foreground">/ {dailyGoal.toLocaleString()} kcal</span>
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                onClick={handleResetCalories}
+                title="Reset all meal calories and re-enter"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+          <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full ${progressColor} transition-all duration-500 rounded-full`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <span className={`text-xs font-semibold ${textColor}`}>
+              {isOverGoal
+                ? `${(currentCalories - dailyGoal).toLocaleString()} kcal OVER limit`
+                : `${remaining.toLocaleString()} kcal remaining`}
+            </span>
+            {isOverGoal && (
+              <span className="text-xs font-bold text-destructive flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Over budget!
+              </span>
+            )}
           </div>
         </div>
-        <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-          <div
-            className={`h-full ${progressColor} transition-all duration-500 rounded-full`}
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-        <div className="flex justify-between items-center mt-1">
-          <span className={`text-xs font-semibold ${textColor}`}>
-            {isOverGoal
-              ? `${(currentCalories - dailyGoal).toLocaleString()} kcal OVER limit`
-              : `${remaining.toLocaleString()} kcal remaining`}
-          </span>
-          {isOverGoal && (
-            <span className="text-xs font-bold text-destructive flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> Over budget!
+
+        {/* Protein bar */}
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Dumbbell className="w-3.5 h-3.5" />
+              Protein
             </span>
+            <span className={`text-sm font-bold font-serif ${proteinTextColor}`}>
+              {currentProtein}g{" "}
+              <span className="text-xs font-sans font-normal text-muted-foreground">/ {dailyProteinGoal}g goal</span>
+            </span>
+          </div>
+          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full ${proteinBarColor} transition-all duration-500 rounded-full`}
+              style={{ width: `${proteinPercent}%` }}
+            />
+          </div>
+          {isProteinMet && (
+            <p className="text-xs font-semibold text-[hsl(262_80%_70%)] mt-0.5">Protein goal met! 💪</p>
           )}
         </div>
       </div>
@@ -255,6 +301,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
         {/* Meals */}
         {MEALS.map((meal) => {
           const mealCal = mealCalories[meal];
+          const mealPro = mealProtein[meal];
           const isEstimating = estimatingMeal === meal;
           const foodVal = (formData[`${meal}Food` as keyof DietLogInput] as string) || "";
           const typeVal = (formData[`${meal}Type` as keyof DietLogInput] as string) || "";
@@ -272,7 +319,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
             <div key={meal} className="bg-background rounded-2xl border border-border p-4 space-y-3">
               {/* Meal header row */}
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-base font-serif capitalize text-primary font-semibold">{meal}</span>
                   {typeVal && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${typeBadgeClass}`}>
@@ -282,12 +329,15 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
                   {mealCal > 0 && (
                     <span className="text-xs text-muted-foreground font-semibold">≈ {mealCal} kcal</span>
                   )}
+                  {mealPro > 0 && (
+                    <span className="text-xs text-[hsl(262_60%_60%)] font-semibold">{mealPro}g protein</span>
+                  )}
                 </div>
                 <ToggleGroup
                   type="single"
                   value={typeVal}
                   onValueChange={(val) => handleMealTypeChange(meal, val)}
-                  className="justify-end"
+                  className="justify-end shrink-0"
                 >
                   <ToggleGroupItem
                     value="healthy"
@@ -358,7 +408,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
               variant="outline"
               size="icon"
               className="border-border bg-card h-9 w-9"
-              onClick={() => setFormData((p) => ({ ...p, waterCups: Math.max(0, (p.waterCups || 0) - 1) }))}
+              onClick={() => setFormData((p: DietLogInput) => ({ ...p, waterCups: Math.max(0, (p.waterCups || 0) - 1) }))}
             >
               −
             </Button>
@@ -370,7 +420,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
               variant="outline"
               size="icon"
               className="border-border bg-card h-9 w-9"
-              onClick={() => setFormData((p) => ({ ...p, waterCups: Math.min(8, (p.waterCups || 0) + 1) }))}
+              onClick={() => setFormData((p: DietLogInput) => ({ ...p, waterCups: Math.min(8, (p.waterCups || 0) + 1) }))}
             >
               +
             </Button>
@@ -390,7 +440,7 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
           </Label>
           <Textarea
             value={formData.note || ""}
-            onChange={(e) => setFormData((p) => ({ ...p, note: e.target.value }))}
+            onChange={(e) => setFormData((p: DietLogInput) => ({ ...p, note: e.target.value }))}
             placeholder="How did you feel today?"
             className="resize-none min-h-[80px] bg-card border-border text-sm"
           />

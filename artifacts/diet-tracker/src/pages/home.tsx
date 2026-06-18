@@ -10,7 +10,9 @@ import {
   getGetDietLogQueryKey,
   getGetProfileQueryKey,
 } from "@workspace/api-client-react";
+import type { DietLog } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, isFutureDate } from "@/lib/date-utils";
 import {
@@ -23,6 +25,7 @@ import {
   Settings,
   TrendingUp,
   Droplets,
+  LogOut,
 } from "lucide-react";
 import { DayDetailPanel } from "@/components/day-detail-panel";
 
@@ -45,7 +48,7 @@ function WeekSummary({
   logs,
   dailyGoal,
 }: {
-  logs: ReturnType<typeof useListDietLogs>["data"];
+  logs: DietLog[];
   dailyGoal: number;
 }) {
   const today = new Date();
@@ -149,6 +152,7 @@ function WeekSummary({
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { user, logout } = useAuth();
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
@@ -217,11 +221,20 @@ export default function Home() {
               <Button variant="outline" size="sm" onClick={() => setLocation("/onboarding")} className="h-7 text-xs">
                 <Settings className="w-3 h-3 mr-1.5" /> Profile
               </Button>
+              <Button variant="ghost" size="sm" onClick={logout} className="h-7 text-xs text-muted-foreground hover:text-destructive">
+                <LogOut className="w-3 h-3 mr-1.5" /> Sign out
+              </Button>
             </div>
+            {user && (
+              <p className="text-muted-foreground text-xs mb-0.5">
+                Signed in as <span className="text-foreground font-medium">{user.firstName || user.email || "you"}</span>
+              </p>
+            )}
             {profile && (
               <p className="text-muted-foreground text-sm">
                 Daily goal: <span className="text-primary font-semibold">{profile.dailyCalorieGoal.toLocaleString()} kcal</span>
                 {" · "}{profile.weightKg}kg · {profile.gender}
+                {" · "}<span className="text-[hsl(262_60%_60%)]">{profile.dailyProteinGoal}g protein</span>
               </p>
             )}
           </div>

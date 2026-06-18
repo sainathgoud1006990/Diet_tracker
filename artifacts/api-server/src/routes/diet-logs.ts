@@ -24,6 +24,10 @@ function computeDayStatus(
 }
 
 router.get("/diet-logs", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = ListDietLogsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid query params" });
@@ -37,12 +41,22 @@ router.get("/diet-logs", async (req, res) => {
   const logs = await db
     .select()
     .from(dietLogsTable)
-    .where(and(gte(dietLogsTable.date, startDate), lte(dietLogsTable.date, endDate)));
+    .where(
+      and(
+        eq(dietLogsTable.userId, req.user.id),
+        gte(dietLogsTable.date, startDate),
+        lte(dietLogsTable.date, endDate)
+      )
+    );
 
   res.json(logs);
 });
 
 router.post("/diet-logs", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = UpsertDietLogBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid body" });
@@ -60,6 +74,7 @@ router.post("/diet-logs", async (req, res) => {
   const [log] = await db
     .insert(dietLogsTable)
     .values({
+      userId: req.user.id,
       date: data.date,
       breakfastType: data.breakfastType ?? null,
       lunchType: data.lunchType ?? null,
@@ -71,11 +86,12 @@ router.post("/diet-logs", async (req, res) => {
       snacksFood: data.snacksFood ?? null,
       waterCups: data.waterCups ?? 0,
       calories: data.calories ?? null,
+      protein: data.protein ?? null,
       note: data.note ?? null,
       dayStatus,
     })
     .onConflictDoUpdate({
-      target: dietLogsTable.date,
+      target: [dietLogsTable.userId, dietLogsTable.date],
       set: {
         breakfastType: data.breakfastType ?? null,
         lunchType: data.lunchType ?? null,
@@ -87,6 +103,7 @@ router.post("/diet-logs", async (req, res) => {
         snacksFood: data.snacksFood ?? null,
         waterCups: data.waterCups ?? 0,
         calories: data.calories ?? null,
+        protein: data.protein ?? null,
         note: data.note ?? null,
         dayStatus,
         updatedAt: new Date(),
@@ -99,6 +116,10 @@ router.post("/diet-logs", async (req, res) => {
 });
 
 router.get("/diet-logs/summary", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = GetMonthSummaryQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid query params" });
@@ -112,7 +133,13 @@ router.get("/diet-logs/summary", async (req, res) => {
   const logs = await db
     .select()
     .from(dietLogsTable)
-    .where(and(gte(dietLogsTable.date, startDate), lte(dietLogsTable.date, endDate)));
+    .where(
+      and(
+        eq(dietLogsTable.userId, req.user.id),
+        gte(dietLogsTable.date, startDate),
+        lte(dietLogsTable.date, endDate)
+      )
+    );
 
   const totalLogged = logs.filter((l) => l.dayStatus !== "empty").length;
   const cleanDays = logs.filter((l) => l.dayStatus === "clean").length;
@@ -152,6 +179,10 @@ router.get("/diet-logs/summary", async (req, res) => {
 });
 
 router.get("/diet-logs/:date", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   const parsed = GetDietLogParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid date" });
@@ -160,7 +191,12 @@ router.get("/diet-logs/:date", async (req, res) => {
   const [log] = await db
     .select()
     .from(dietLogsTable)
-    .where(eq(dietLogsTable.date, parsed.data.date));
+    .where(
+      and(
+        eq(dietLogsTable.userId, req.user.id),
+        eq(dietLogsTable.date, parsed.data.date)
+      )
+    );
 
   if (!log) {
     res.status(404).json({ error: "Not found" });

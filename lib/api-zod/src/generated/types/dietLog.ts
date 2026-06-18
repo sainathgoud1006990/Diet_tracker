@@ -27,6 +27,8 @@ export interface DietLog {
   /** @nullable */
   calories: number | null;
   /** @nullable */
+  protein: number | null;
+  /** @nullable */
   note: string | null;
   dayStatus: DietLogDayStatus;
   createdAt: string;
