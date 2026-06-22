@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm install && NODE_ENV=production BASE_PATH=/ PORT=3000 pnpm --filter @workspace/diet-tracker run build && mkdir -p public && cp -r artifacts/diet-tracker/dist/public/. public/",
+  "framework": null,
+  "installCommand": "npm install -g pnpm && pnpm install",
+  "buildCommand": "NODE_ENV=production BASE_PATH=/ PORT=3000 pnpm --filter @workspace/diet-tracker run build && mkdir -p public && cp -r artifacts/diet-tracker/dist/public/. public/",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index" }
   ]
