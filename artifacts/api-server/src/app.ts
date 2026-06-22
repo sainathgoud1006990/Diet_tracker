@@ -1,12 +1,17 @@
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import pinoHttp from "pino-http";
+import pinoHttpModule from "pino-http";
 import path from "path";
 import fs from "fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
+
+// pino-http ships as CJS; esModuleInterop differences across hosts require this fallback
+const pinoHttp: typeof pinoHttpModule =
+  (pinoHttpModule as unknown as { default: typeof pinoHttpModule }).default ??
+  pinoHttpModule;
 
 const app: Express = express();
 
@@ -14,16 +19,16 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req) {
+      req(req: Record<string, unknown>) {
         return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
+          id: req["id"],
+          method: req["method"],
+          url: typeof req["url"] === "string" ? req["url"].split("?")[0] : req["url"],
         };
       },
-      res(res) {
+      res(res: Record<string, unknown>) {
         return {
-          statusCode: res.statusCode,
+          statusCode: res["statusCode"],
         };
       },
     },
