@@ -43,7 +43,11 @@ export default defineConfig(async ({ command }) => ({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    // On Vercel, output directly to /public at the repo root (Vercel serves this as static)
+    // Locally, output to dist/public inside the artifact directory
+    outDir: process.env.VERCEL
+      ? path.resolve(import.meta.dirname, "../../public")
+      : path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
