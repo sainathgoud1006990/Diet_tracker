@@ -118,16 +118,16 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
   };
 
   const handleResetMeal = (meal: MealKey) => {
-    const updatedCal = { ...mealCalories, [meal]: 0 };
-    const updatedPro = { ...mealProtein, [meal]: 0 };
-    setMealCalories(updatedCal);
-    setMealProtein(updatedPro);
+    const prevMealCal = mealCalories[meal];
+    const prevMealPro = mealProtein[meal];
+    setMealCalories((prev) => ({ ...prev, [meal]: 0 }));
+    setMealProtein((prev) => ({ ...prev, [meal]: 0 }));
     setFormData((prev: DietLogInput) => ({
       ...prev,
       [`${meal}Food`]: null,
       [`${meal}Type`]: null,
-      calories: Object.values(updatedCal).reduce((a, b) => a + b, 0) || null,
-      protein: Object.values(updatedPro).reduce((a, b) => a + b, 0) || null,
+      calories: Math.max(0, (prev.calories || 0) - prevMealCal) || null,
+      protein: Math.max(0, (prev.protein || 0) - prevMealPro) || null,
     }));
   };
 
@@ -147,16 +147,16 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
       { data: { foodDescription } },
       {
         onSuccess: (result) => {
-          const updatedCal = { ...mealCalories, [meal]: result.estimatedCalories };
-          const updatedPro = { ...mealProtein, [meal]: result.estimatedProteinG };
-          setMealCalories(updatedCal);
-          setMealProtein(updatedPro);
+          const prevMealCal = mealCalories[meal];
+          const prevMealPro = mealProtein[meal];
+          setMealCalories((prev) => ({ ...prev, [meal]: result.estimatedCalories }));
+          setMealProtein((prev) => ({ ...prev, [meal]: result.estimatedProteinG }));
           const typeKey = `${meal}Type` as keyof DietLogInput;
           setFormData((prev: DietLogInput) => ({
             ...prev,
             [typeKey]: result.mealType,
-            calories: Object.values(updatedCal).reduce((a, b) => a + b, 0),
-            protein: Object.values(updatedPro).reduce((a, b) => a + b, 0),
+            calories: (prev.calories || 0) - prevMealCal + result.estimatedCalories,
+            protein: (prev.protein || 0) - prevMealPro + result.estimatedProteinG,
           }));
           setEstimatingMeal(null);
         },
