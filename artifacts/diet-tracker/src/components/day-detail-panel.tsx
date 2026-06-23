@@ -132,9 +132,15 @@ export function DayDetailPanel({ date, onClose, onMarkCheatDay, currentYear, cur
   };
 
   const handleResetCalories = () => {
+    const totalEstimated = Object.values(mealCalories).reduce((a, b) => a + b, 0);
+    const totalProteinEstimated = Object.values(mealProtein).reduce((a, b) => a + b, 0);
     setMealCalories({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
     setMealProtein({ breakfast: 0, lunch: 0, dinner: 0, snacks: 0 });
-    setFormData((prev: DietLogInput) => ({ ...prev, calories: null, protein: null }));
+    setFormData((prev: DietLogInput) => ({
+      ...prev,
+      calories: Math.max(0, (prev.calories || 0) - totalEstimated) || null,
+      protein: Math.max(0, (prev.protein || 0) - totalProteinEstimated) || null,
+    }));
   };
 
   const handleEstimate = (meal: MealKey) => {
