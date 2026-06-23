@@ -14,6 +14,7 @@ import {
 const router: IRouter = Router();
 
 function getOrigin(req: Request): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
   const proto = req.headers["x-forwarded-proto"] || "https";
   const host =
     req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
@@ -121,83 +122,106 @@ router.get("/login", (req: Request, res: Response) => {
 });
 
 router.get("/callback", async (req: Request, res: Response) => {
-  const code = req.query.code as string | undefined;
-  const state = req.query.state as string | undefined;
-  const expectedState = req.cookies?.oauth_state as string | undefined;
-  const returnTo = getSafeReturnTo(req.cookies?.return_to);
+  try {
+    const code = req.query.code as string | undefined;
+    const state = req.query.state as string | undefined;
+    const expectedState = req.cookies?.oauth_state as string | undefined;
+    const returnTo = getSafeReturnTo(req.cookies?.return_to);
 
-  res.clearCookie("oauth_state", { path: "/" });
-  res.clearCookie("return_to", { path: "/" });
+    res.clearCookie("oauth_state", { path: "/" });
+    res.clearCookie("return_to", { path: "/" });
 
-  if (!code || !state || state !== expectedState) {
-    res.redirect("/api/login");
-    return;
-  }
+    if (!code || !state || state !== expectedState) {
+      req.log.warn(
+        { hasCode: !!code, hasState: !!state, stateMatch: state === expectedState },
+        "OAuth state mismatch or missing code",
+      );
+      res.redirect("/api/login");
+      return;
+    }
 
-  const clientId = process.env.GITHUB_CLIENT_ID!;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET!;
-  const callbackUrl = `${getOrigin(req)}/api/callback`;
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
-  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      redirect_uri: callbackUrl,
-    }),
-  });
+    if (!clientId || !clientSecret) {
+      req.log.error("GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET not set");
+      res.status(500).send("GitHub OAuth not configured");
+      return;
+    }
 
-  const tokenData = (await tokenRes.json()) as {
-    access_token?: string;
-    error?: string;
-  };
+    const callbackUrl = `${getOrigin(req)}/api/callback`;
 
-  if (!tokenData.access_token) {
-    req.log.error({ tokenData }, "GitHub token exchange failed");
-    res.redirect("/api/login");
-    return;
-  }
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: callbackUrl,
+      }),
+    });
 
-  const ghHeaders = {
-    Authorization: `Bearer ${tokenData.access_token}`,
-    "User-Agent": "DietTrack",
-  };
+    const tokenData = (await tokenRes.json()) as {
+      access_token?: string;
+      error?: string;
+      error_description?: string;
+    };
 
-  const userRes = await fetch("https://api.github.com/user", {
-    headers: ghHeaders,
-  });
-  const githubUser = (await userRes.json()) as GitHubUser;
+    if (!tokenData.access_token) {
+      req.log.error({ tokenData }, "GitHub token exchange failed");
+      res.status(500).send(`GitHub token exchange failed: ${tokenData.error ?? "unknown"} — ${tokenData.error_description ?? ""}`);
+      return;
+    }
 
-  if (!githubUser.email) {
-    const emailRes = await fetch("https://api.github.com/user/emails", {
+    const ghHeaders = {
+      Authorization: `Bearer ${tokenData.access_token}`,
+      "User-Agent": "DietTrack",
+    };
+
+    const userRes = await fetch("https://api.github.com/user", {
       headers: ghHeaders,
     });
-    const emails = (await emailRes.json()) as GitHubEmail[];
-    const primary = emails.find((e) => e.primary && e.verified);
-    if (primary) githubUser.email = primary.email;
+    const githubUser = (await userRes.json()) as GitHubUser;
+
+    if (!githubUser.id) {
+      req.log.error({ githubUser }, "GitHub user fetch failed");
+      res.status(500).send("Failed to fetch GitHub user info");
+      return;
+    }
+
+    if (!githubUser.email) {
+      const emailRes = await fetch("https://api.github.com/user/emails", {
+        headers: ghHeaders,
+      });
+      const emails = (await emailRes.json()) as GitHubEmail[];
+      const primary = emails.find((e) => e.primary && e.verified);
+      if (primary) githubUser.email = primary.email;
+    }
+
+    const dbUser = await upsertUser(githubUser);
+
+    const sessionData: SessionData = {
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        profileImageUrl: dbUser.profileImageUrl,
+      },
+      access_token: tokenData.access_token,
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+    res.redirect(returnTo);
+  } catch (err) {
+    req.log.error({ err }, "OAuth callback crashed");
+    res.status(500).send(`Login error: ${err instanceof Error ? err.message : String(err)}`);
   }
-
-  const dbUser = await upsertUser(githubUser);
-
-  const sessionData: SessionData = {
-    user: {
-      id: dbUser.id,
-      email: dbUser.email,
-      firstName: dbUser.firstName,
-      lastName: dbUser.lastName,
-      profileImageUrl: dbUser.profileImageUrl,
-    },
-    access_token: tokenData.access_token,
-  };
-
-  const sid = await createSession(sessionData);
-  setSessionCookie(res, sid);
-  res.redirect(returnTo);
 });
 
 router.get("/logout", async (req: Request, res: Response) => {
