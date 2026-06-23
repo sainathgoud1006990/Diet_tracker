@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Loader2, Salad, Star, Flame, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";

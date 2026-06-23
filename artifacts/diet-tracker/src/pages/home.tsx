@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import type { DietLog } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, isFutureDate } from "@/lib/date-utils";
 import {
