@@ -1,9 +1,10 @@
 [build]
-  command = "npm install -g pnpm && pnpm install && NODE_ENV=production BASE_PATH=/ PORT=3000 pnpm --filter @workspace/diet-tracker run build"
+  command = "pnpm install && NODE_ENV=production BASE_PATH=/ PORT=3000 pnpm --filter @workspace/diet-tracker run build"
   publish = "artifacts/diet-tracker/dist/public"
 
 [build.environment]
   NODE_VERSION = "20"
+  PNPM_VERSION = "10"
 
 [functions]
   node_bundler = "esbuild"
